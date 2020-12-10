@@ -8,8 +8,8 @@ config = {
 }
 
 
-usersArray = ['test.adjunct@rm.edu', 'test.faculty@rm.edu', 'test.staff@rm.edu',
-              'test.student@rm.eedu', 'test.motivis.faculty@rm.edu', 'test.employee@rm.edu']
+usersArray = ['test.adjunct@email.edu', 'test.faculty@email.edu', 'test.staff@email.edu',
+              'test.student@email.edu', 'test.motivis.faculty@email.edu', 'test.employee@email.edu']
 
 
 async def main():
