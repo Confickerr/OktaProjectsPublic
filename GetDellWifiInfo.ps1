@@ -82,8 +82,8 @@ foreach ($adapter in $WiFiAdapters) {
 "`n==== Network Adapter Driver Information ====" | Out-File -FilePath $outputFile -Append
 $AdapterDriverInfo | Format-Table -AutoSize | Out-File -FilePath $outputFile -Append
 
-# Recent Network Events (Last 24 hours)
-$NetworkEvents = Get-WinEvent -LogName System | Where-Object { $_.TimeCreated -gt (Get-Date).AddHours(-24) -and $_.Id -in 4000..4999 } |
+# Recent Network Events (Last 168 hours)
+$NetworkEvents = Get-WinEvent -LogName System | Where-Object { $_.TimeCreated -gt (Get-Date).AddHours(-168) -and $_.Id -in 4000..4999 } |
     Select-Object -Property TimeCreated, Id, Message
 "`n==== Recent Network Events (Last 24 hours) ====" | Out-File -FilePath $outputFile -Append
 $NetworkEvents | Format-Table -AutoSize | Out-File -FilePath $outputFile -Append
