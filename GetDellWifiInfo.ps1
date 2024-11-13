@@ -1,5 +1,12 @@
-# Comprehensive System and Network Information Script
+# Comprehensive System and Network Information Script with Output to File on User's Desktop
 # Run as Administrator
+
+# Define output file path on the current user's desktop
+$outputFile = "$env:USERPROFILE\Desktop\Network_Debug_Info.txt"
+
+# Create or overwrite the output file
+"`n==== System and Network Information Report ====" | Out-File -FilePath $outputFile -Force
+"Report Generated on: $(Get-Date)" | Out-File -FilePath $outputFile -Append
 
 # System Information
 $SystemInfo = Get-CimInstance -ClassName Win32_OperatingSystem
@@ -10,12 +17,27 @@ $ServicePack = $SystemInfo.ServicePackMajorVersion
 $OSInstallDate = $SystemInfo.InstallDate
 $LastBootUpTime = (Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime
 
+# Write System Information to Output File
+"`n==== System Information ====" | Out-File -FilePath $outputFile -Append
+"OS Name: $OSName" | Out-File -FilePath $outputFile -Append
+"OS Version: $OSVersion" | Out-File -FilePath $outputFile -Append
+"OS Build: $OSBuild" | Out-File -FilePath $outputFile -Append
+"Service Pack: $ServicePack" | Out-File -FilePath $outputFile -Append
+"OS Install Date: $OSInstallDate" | Out-File -FilePath $outputFile -Append
+"Last Boot Up Time: $LastBootUpTime" | Out-File -FilePath $outputFile -Append
+
 # Windows Updates
 $Updates = Get-HotFix | Select-Object -Property Description, HotFixID, InstalledOn
+"`n==== Installed Windows Updates ====" | Out-File -FilePath $outputFile -Append
+$Updates | Format-Table -AutoSize | Out-File -FilePath $outputFile -Append
 
-# IP Configuration and Network Adapter Details
+# IP Configuration and DNS Information
 $IPConfig = Get-NetIPAddress | Where-Object { $_.AddressFamily -eq "IPv4" }
 $DNSInfo = Get-DnsClientServerAddress | Select-Object -Property InterfaceAlias, ServerAddresses
+"`n==== IP Configuration ====" | Out-File -FilePath $outputFile -Append
+$IPConfig | Format-Table -AutoSize | Out-File -FilePath $outputFile -Append
+"`n==== DNS Information ====" | Out-File -FilePath $outputFile -Append
+$DNSInfo | Format-Table -AutoSize | Out-File -FilePath $outputFile -Append
 
 # Wireless Adapter Details
 $WiFiAdapters = Get-NetAdapter -Physical | Where-Object { $_.Name -like "*Wi-Fi*" -or $_.Name -like "*Wireless*" }
@@ -36,38 +58,35 @@ foreach ($adapter in $WiFiAdapters) {
         DriverDate = $DriverInfo.DriverDate
     }
 }
+"`n==== Wireless Adapter Details ====" | Out-File -FilePath $outputFile -Append
+$WirelessInfo | Format-Table -AutoSize | Out-File -FilePath $outputFile -Append
 
 # Active TCP Connections
 $TCPConnections = Get-NetTCPConnection | Where-Object { $_.State -eq "Established" } | 
     Select-Object -Property LocalAddress, LocalPort, RemoteAddress, RemotePort, State
+"`n==== Active TCP Connections ====" | Out-File -FilePath $outputFile -Append
+$TCPConnections | Format-Table -AutoSize | Out-File -FilePath $outputFile -Append
+
+# Network Adapter Driver Information
+$DriverInfo = Get-WmiObject Win32_PnPSignedDriver | Where-Object { $_.DeviceClass -eq "Net" }
+$AdapterDriverInfo = @()
+foreach ($adapter in $WiFiAdapters) {
+    $Driver = $DriverInfo | Where-Object { $_.DeviceID -eq $adapter.PnPDeviceID }
+    $AdapterDriverInfo += [PSCustomObject]@{
+        AdapterName = $adapter.Name
+        DriverProvider = $Driver.ProviderName
+        DriverVersion = $Driver.DriverVersion
+        DriverDate = $Driver.DriverDate
+    }
+}
+"`n==== Network Adapter Driver Information ====" | Out-File -FilePath $outputFile -Append
+$AdapterDriverInfo | Format-Table -AutoSize | Out-File -FilePath $outputFile -Append
 
 # Recent Network Events (Last 24 hours)
 $NetworkEvents = Get-WinEvent -LogName System | Where-Object { $_.TimeCreated -gt (Get-Date).AddHours(-24) -and $_.Id -in 4000..4999 } |
     Select-Object -Property TimeCreated, Id, Message
+"`n==== Recent Network Events (Last 24 hours) ====" | Out-File -FilePath $outputFile -Append
+$NetworkEvents | Format-Table -AutoSize | Out-File -FilePath $outputFile -Append
 
-# Output Results
-Write-Output "==== System Information ===="
-Write-Output "OS Name: $OSName"
-Write-Output "OS Version: $OSVersion"
-Write-Output "OS Build: $OSBuild"
-Write-Output "Service Pack: $ServicePack"
-Write-Output "OS Install Date: $OSInstallDate"
-Write-Output "Last Boot Up Time: $LastBootUpTime"
-
-Write-Output "`n==== Installed Windows Updates ===="
-$Updates | Format-Table -AutoSize
-
-Write-Output "`n==== IP Configuration ===="
-$IPConfig | Format-Table -AutoSize
-
-Write-Output "`n==== DNS Information ===="
-$DNSInfo | Format-Table -AutoSize
-
-Write-Output "`n==== Wireless Adapter Details ===="
-$WirelessInfo | Format-Table -AutoSize
-
-Write-Output "`n==== Active TCP Connections ===="
-$TCPConnections | Format-Table -AutoSize
-
-Write-Output "`n==== Recent Network Events (Last 24 hours) ===="
-$NetworkEvents | Format-Table -AutoSize
+# Completion message
+Write-Output "Data collection complete. Results saved to: $outputFile"
